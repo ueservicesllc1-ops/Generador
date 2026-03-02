@@ -56,6 +56,7 @@ const previewTimeLabel = $('previewTimeLabel');
 const renderBtn = $('renderBtn');
 const renderProgress = $('renderProgress');
 const renderBar = $('renderBar');
+const cancelRenderBtn = $('cancelRenderBtn');
 
 // --- PREVIEW SETUP ---
 const previewAudio = new Audio();
@@ -380,14 +381,23 @@ renderBtn.onclick = async () => {
   const chunks = [];
   recorder.ondataavailable = e => chunks.push(e.data);
   recorder.onstop = () => {
-    let baseName = $('videoNameInput').value.trim() || 'karaoke';
-    if (!baseName.toLowerCase().endsWith('.webm')) baseName += '.webm';
-
-    const blob = new Blob(chunks, { type: 'video/webm' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url; a.download = baseName; a.click();
+    if (state.renderAbort) {
+      console.log('Renderizado cancelado por el usuario.');
+    } else {
+      let baseName = $('videoNameInput').value.trim() || 'karaoke';
+      if (!baseName.toLowerCase().endsWith('.webm')) baseName += '.webm';
+      const blob = new Blob(chunks, { type: 'video/webm' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = baseName; a.click();
+    }
     renderProgress.style.display = 'none';
     renderBtn.disabled = false;
+  };
+
+  cancelRenderBtn.onclick = () => {
+    state.renderAbort = true;
+    renderAudio.pause();
+    recorder.stop();
   };
 
   recorder.start();
@@ -408,6 +418,6 @@ renderBtn.onclick = async () => {
 };
 
 // Final
-console.log('KaraokeAI Script v2.1 Loaded - Custom Filename Added');
+console.log('KaraokeAI Script v2.2 Loaded - Cancel Render Added');
 apiKeyInput.value = '29ad569427124703968e2831c718b81c';
 refreshPreview();

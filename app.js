@@ -130,15 +130,17 @@ transcribeBtn.addEventListener('click', async () => {
   transcribeBtn.disabled = true;
 
   try {
-    // 1. Upload
-    progressLabel.textContent = 'Subiendo audio...';
-    const uploadRes = await fetch('https://api.assemblyai.com/v2/upload', {
-      method: 'POST', headers: { authorization: key }, body: state.audioFile
+    // 1. Upload (via Proxy)
+    progressLabel.textContent = 'Subiendo audio al servidor...';
+    const uploadRes = await fetch('/api/upload', {
+      method: 'POST',
+      headers: { 'authorization': key, 'Content-Type': state.audioFile.type },
+      body: state.audioFile
     });
     const { upload_url } = await uploadRes.json();
 
-    // 2. Transcribe (IA) - ARRAY VERSION v1.9
-    progressLabel.textContent = 'IA Iniciada (v1.9)...';
+    // 2. Transcribe (via Proxy)
+    progressLabel.textContent = 'Iniciando IA (v3.0)...';
     const selectedModel = $('transcriptionModel').value;
 
     // NOTA: Para Universal-3-Pro se usa array y NO se puede enviar language_detection.
@@ -149,12 +151,9 @@ transcribeBtn.addEventListener('click', async () => {
 
     console.log('Sending v1.9 Payload:', requestBody);
 
-    const createRes = await fetch('https://api.assemblyai.com/v2/transcript', {
+    const createRes = await fetch('/api/transcript', {
       method: 'POST',
-      headers: {
-        'authorization': key,
-        'content-type': 'application/json'
-      },
+      headers: { 'authorization': key, 'content-type': 'application/json' },
       body: JSON.stringify(requestBody)
     });
 
@@ -167,7 +166,7 @@ transcribeBtn.addEventListener('click', async () => {
     let transcript;
     while (true) {
       await sleep(3000);
-      const r = await fetch(`https://api.assemblyai.com/v2/transcript/${id}`, { headers: { authorization: key } });
+      const r = await fetch(`/api/transcript/${id}`, { headers: { authorization: key } });
       transcript = await r.json();
       if (transcript.status === 'completed') break;
       if (transcript.status === 'error') throw new Error(transcript.error);

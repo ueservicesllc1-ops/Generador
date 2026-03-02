@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KaraokeAI — Generador de Video con Letras</title>
+    <style>
+        :root {
+            --primary: #4a90e2;
+            --primary-dark: #357abd;
+            --bg: #f5f7fa;
+            --text: #333;
+            --border: #ddd;
+            --radius: 8px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 30px;
+            border-radius: var(--radius);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #2c3e50;
+        }
+
+        .section {
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .section:last-child {
+            border-bottom: none;
+        }
+
+        h2 {
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+            color: #555;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+
+        input[type="text"],
+        input[type="password"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+
+        .upload-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .upload-box {
+            border: 2px dashed var(--border);
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            border-radius: var(--radius);
+            transition: background 0.2s;
+        }
+
+        .upload-box:hover {
+            background: #f0f4f8;
+            border-color: var(--primary);
+        }
+
+        .btn {
+            display: inline-block;
+            background: var(--primary);
+            color: #fff;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            font-size: 1rem;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s;
+            width: 100%;
+        }
+
+        .btn:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        #editorSection {
+            display: none;
+        }
+
+        #lyricsEditor {
+            height: 250px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+
+        .timeline-container {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 10px;
+            background: #fafafa;
+        }
+
+        .timeline-item {
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+        }
+
+        .timeline-item:hover {
+            background: #eef;
+        }
+
+        .time {
+            font-weight: bold;
+            color: var(--primary);
+            margin-right: 10px;
+        }
+
+        #exportSection {
+            display: none;
+        }
+
+        .preview-container {
+            background: #000;
+            margin: 20px 0;
+            text-align: center;
+            border-radius: var(--radius);
+            overflow: hidden;
+            aspect-ratio: 16/9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #previewCanvas {
+            max-width: 100%;
+            max-height: 100%;
+        }
+
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        #progressArea {
+            margin-top: 20px;
+            padding: 15px;
+            background: #e1f5fe;
+            border: 1px solid #b3e5fc;
+            border-radius: 4px;
+            display: none;
+        }
+
+        .progress-bar-bg {
+            height: 10px;
+            background: #ddd;
+            border-radius: 5px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: var(--primary);
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        .img-preview {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        .img-preview img {
+            width: 60px;
+            height: 40px;
+            object-fit: cover;
+            border-radius: 2px;
+            border: 1px solid #ddd;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🎬 KaraokeAI</h1>
+
+        <!-- Configuración -->
+        <div class="section">
+            <h2>Configuración</h2>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div>
+                    <label>API Key de AssemblyAI</label>
+                    <input type="password" id="apiKeyInput" placeholder="Pega tu clave aquí...">
+                </div>
+                <div>
+                    <label>Modelo de Transcripción</label>
+                    <select id="transcriptionModel">
+                        <option value="universal-3-pro">Mejor Calidad (Universal-3-Pro)</option>
+                        <option value="universal-2">Balanceado (Universal-2)</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Carga de Archivos -->
+        <div class="section" id="step1">
+            <h2>Paso 1: Cargar Multimedia</h2>
+            <div class="upload-row">
+                <div class="upload-box" onclick="document.getElementById('audioFile').click()">
+                    <strong>🎵 Subir Audio</strong>
+                    <p>MP3 o WAV</p>
+                    <input type="file" id="audioFile" accept="audio/*" style="display:none">
+                </div>
+                <div class="upload-box" onclick="document.getElementById('imageFiles').click()">
+                    <strong>🖼️ Subir Imágenes</strong>
+                    <p>Fondo dinámico</p>
+                    <input type="file" id="imageFiles" accept="image/*" multiple style="display:none">
+                </div>
+            </div>
+            <div id="fileInfo" style="margin-top:10px; font-size: 0.9rem; color: #666; display:none">
+                Archivo: <span id="fileName"></span> (<span id="fileSize"></span>)
+            </div>
+            <div class="img-preview" id="imgPreviewStrip"></div>
+
+            <div class="img-preview" id="imgPreviewStrip"></div>
+
+            <button class="btn" id="transcribeBtn" style="margin-top: 20px;" disabled>Iniciar Transcripción por
+                IA</button>
+
+            <!-- Progreso Transcripción -->
+            <div id="progressArea">
+                <div id="progressLabel">Procesando audio...</div>
+                <div class="progress-bar-bg">
+                    <div class="progress-bar-fill" id="progressBar"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Editor de Letras -->
+        <div class="section" id="editorSection">
+            <h2>Paso 2: Editar Letras</h2>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div>
+                    <label>Letras (un línea por pantalla)</label>
+                    <textarea id="lyricsEditor"></textarea>
+                    <button class="btn" id="applyLyricsBtn">Aplicar y Continuar</button>
+                </div>
+                <div>
+                    <label>Línea de Tiempo</label>
+                    <div class="timeline-container" id="timedLyrics"></div>
+                    <div style="margin-top:10px; display:flex; gap:10px">
+                        <button id="exportSRT" style="flex:1; padding: 5px;">Bajar SRT</button>
+                        <button id="exportJSON" style="flex:1; padding: 5px;">Bajar JSON</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Diseño y Exportación -->
+        <div class="section" id="exportSection">
+            <h2>Paso 3: Diseño y Exportar</h2>
+
+            <div class="preview-container">
+                <canvas id="previewCanvas"></canvas>
+            </div>
+
+            <!-- Controles de Reproducción Preview -->
+            <div style="display:flex; align-items:center; gap:15px; margin-bottom: 20px;">
+                <button id="previewPlayBtn" style="padding: 10px;">▶ Reproducir</button>
+                <input type="range" id="previewScrubber" min="0" max="1000" value="0" style="flex:1">
+                <span id="previewTimeLabel">0:00 / 0:00</span>
+            </div>
+
+            <div class="controls-grid">
+                <div>
+                    <label>Fuente</label>
+                    <select id="fontFamily">
+                        <option value="Arial">Arial</option>
+                        <option value="Verdana">Verdana</option>
+                        <option value="Georgia">Georgia</option>
+                        <option value="Courier New">Courier New</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Tamaño Fuente</label>
+                    <input type="range" id="fontSize" min="20" max="80" value="48">
+                </div>
+                <div>
+                    <label>Color Texto</label>
+                    <input type="color" id="textColor" value="#ffffff">
+                </div>
+                <div>
+                    <label>Color Borde</label>
+                    <input type="color" id="strokeColor" value="#000000">
+                </div>
+                <div>
+                    <label>Posición</label>
+                    <select id="textPosition">
+                        <option value="top">Arriba</option>
+                        <option value="center">Centro</option>
+                        <option value="bottom" selected>Abajo</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Modo Líneas</label>
+                    <select id="linesMode">
+                        <option value="1">1 Línea</option>
+                        <option value="2">2 Líneas</option>
+                        <option value="3" selected>3 Líneas</option>
+                    </select>
+                </div>
+            </div>
+
+            <div style="margin-top: 30px;">
+                <button class="btn" id="renderBtn" style="background: #27ae60;">🎬 Renderizar Video Final</button>
+                <div id="renderProgress" style="display:none; margin-top:20px;">
+                    <div id="rpLabel">Renderizando...</div>
+                    <div class="progress-bar-bg">
+                        <div class="progress-bar-fill" id="renderBar"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js?v=3"></script>
+</body>
+
+</html>
